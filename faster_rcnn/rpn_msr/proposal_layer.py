@@ -9,7 +9,7 @@ import numpy as np
 from ..fast_rcnn.config import cfg
 from ..fast_rcnn.nms_wrapper import nms
 
-from faster_rcnn.fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
+from faster_rcnn.fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes, enlarge_rois
 from generate_anchors import generate_anchors
 
 # <<<< obsolete
@@ -23,7 +23,7 @@ transformations to a set of regular boxes (called "anchors").
 
 
 def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key, 
-                        _feat_stride, anchor_scales, anchor_ratios, is_region=False):
+                        _feat_stride, anchor_scales, anchor_ratios, is_relationship=False):
     # Algorithm:
     #
     # for each (H, W) location i
@@ -51,7 +51,7 @@ def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key,
         'Only single item batches are supported'
     # cfg_key = str(self.phase) # either 'TRAIN' or 'TEST'
     # cfg_key = 'TEST'
-    if is_region:
+    if is_relationship:
         pre_nms_topN = cfg[cfg_key].RPN_PRE_NMS_TOP_N_REGION
         post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N_REGION
         nms_thresh = cfg[cfg_key].RPN_NMS_THRESH_REGION
@@ -145,7 +145,7 @@ def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key,
     scores = scores[order]
 
     # 6. apply nms (e.g. threshold = 0.7)
-    # 7. take after_nms_topN (e.g. 300)
+    # 7. take after_nms_topN (e.g. 2000)
     # 8. return the top proposals (-> RoIs top)
     # print 'proposals', proposals
     # print 'scores', scores
@@ -154,6 +154,12 @@ def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key,
         keep = keep[:post_nms_topN]
     proposals = proposals[keep, :]
     scores = scores[keep]
+
+	# enlarge the relationship proposal by a certain ratio
+    if is_relationship:
+	    proposals = enlarge_rois(proposals, 1.1)
+	    proposals = clip_boxes(proposals, im_info[:2])
+
     # Output rois blob
     # Our RPN implementation only supports a single input image, so all
     # batch inds are 0

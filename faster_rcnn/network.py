@@ -55,7 +55,7 @@ def load_net(fname, net):
             else:
                 print '[Missed]: {}'.format(k)
     except Exception as e:
-        pdb.set_trace()
+        # pdb.set_trace()
         print '[Loaded net not complete] Parameter[{}] Size Mismatch...'.format(k)
         
 

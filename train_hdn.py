@@ -30,8 +30,9 @@ parser.add_argument('--max_epoch', type=int, default=10, metavar='N', help='max 
 parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='percentage of past parameters to store')
 parser.add_argument('--log_interval', type=int, default=1000, help='Interval for Logging')
 parser.add_argument('--step_size', type=int, default = 2, help='Step size for reduce learning rate')
-parser.add_argument('--resume_training', action='store_true', help='Resume training from the model [resume_model]')
-parser.add_argument('--resume_model', type=str, default='', help='The model we resume')
+parser.add_argument('--resume_training', default=True, help='Resume training from the model [resume_model]')
+parser.add_argument('--resume_model', type=str,
+                    default='output/trained_model/HDN_1_iters_alt_normal_I_LSTM_with_bias_with_dropout_0_5_nembed_256_nhidden_512_with_region_regression_resume_SGD_best.h5', help='The model we resume')
 parser.add_argument('--load_RPN', action='store_true', help='To end-to-end train from the scratch')
 parser.add_argument('--enable_clip_gradient', action='store_true', help='Whether to clip the gradient')
 parser.add_argument('--use_normal_anchors', action='store_true', help='Whether to use kmeans anchors')
@@ -44,7 +45,7 @@ parser.add_argument('--dropout', action='store_true', help='To enables the dropo
 parser.add_argument('--MPS_iter', type=int, default=1, help='Iterations for Message Passing')
 parser.add_argument('--gate_width', type=int, default=128, help='The number filters for gate functions in GRU')
 parser.add_argument('--nhidden_caption', type=int, default=512, help='The size of hidden feature in language model')
-parser.add_argument('--nembedding', type=int, default=256, help='The size of word embedding')
+parser.add_argument('--nembedding', type=int, default=1024, help='The size of word embedding')
 parser.add_argument('--rnn_type', type=str, default='LSTM_baseline', help='Select the architecture of RNN in caption model[LSTM_im | LSTM_normal]')
 parser.add_argument('--caption_use_bias', action='store_true', help='Use the flap to enable the bias term to caption model')
 parser.add_argument('--caption_use_dropout', action='store_const', const=0.5, default=0., help='Set to use dropout in caption model')
@@ -103,18 +104,19 @@ def main():
                  voc_sign=train_set.voc_sign,
                  max_word_length=train_set.max_size, 
                  MPS_iter=args.MPS_iter, 
-                 use_language_loss=not args.disable_language_model,
+                 use_language_loss=args.disable_language_model,
                  object_loss_weight=train_set.inverse_weight_object, 
                  predicate_loss_weight=train_set.inverse_weight_predicate,
                  dropout=args.dropout, 
-                 use_kmeans_anchors=not args.use_normal_anchors, 
+                 use_kmeans_anchors=args.use_normal_anchors, #False
                  gate_width = args.gate_width, 
                  nhidden_caption = args.nhidden_caption, 
                  nembedding = args.nembedding,
                  rnn_type=args.rnn_type, 
-                 rnn_droptout=args.caption_use_dropout, rnn_bias=args.caption_use_bias, 
-                 use_region_reg = args.region_bbox_reg, 
-                 use_kernel = args.use_kernel_function)
+                 rnn_droptout=args.caption_use_dropout,     # 0.0
+                 rnn_bias=args.caption_use_bias,            # False
+                 use_region_reg = not args.region_bbox_reg, # False
+                 use_kernel = args.use_kernel_function)     # False
 
     params = list(net.parameters())
     for param in params:
@@ -227,9 +229,6 @@ def main():
                 optimizer = network.get_optimizer(lr, optimizer_select, args, 
                             vgg_features_var, rpn_features, hdn_features, language_features)
 
-        
-
-
 
 def train(train_loader, target_net, optimizer, epoch):
     global args
@@ -263,6 +262,7 @@ def train(train_loader, target_net, optimizer, epoch):
     for i, (im_data, im_info, gt_objects, gt_relationships, gt_regions) in enumerate(train_loader):
         # measure the data loading time
         data_time.update(time.time() - end)
+        # begin forward
         target_net(im_data, im_info, gt_objects.numpy()[0], gt_relationships.numpy()[0], gt_regions.numpy()[0])
 
         # Determine the loss function

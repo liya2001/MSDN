@@ -20,7 +20,7 @@ from fast_rcnn.hierarchical_message_passing_structure import Hierarchical_Messag
 from Language_Model import Language_Model
 from RPN import RPN
 from fast_rcnn.config import cfg
-from utils.cython_bbox import bbox_overlaps
+# from utils.cython_bbox import bbox_overlaps
 
 import network
 from network import Conv2d, FC
@@ -49,7 +49,7 @@ class Hierarchical_Descriptive_Model(HDN_base):
                  dropout=False, 
                  use_kmeans_anchors=False, 
                  gate_width=128, 
-                 nhidden_caption=256, 
+                 nhidden_caption=256,
                  nembedding = 256,
                  rnn_type='LSTM_normal', 
                  rnn_droptout=0.0, rnn_bias=False, 
@@ -111,7 +111,7 @@ class Hierarchical_Descriptive_Model(HDN_base):
         self.timer.tic()
         features, object_rois, region_rois = self.rpn(im_data, im_info, gt_objects, gt_regions)
 
-        if not self.training and gt_objects is not None:
+        if not self.training and gt_objects is not None:   #TODO: Why here use gt_objects info at test process?
             zeros = np.zeros((gt_objects.shape[0], 1), dtype=gt_objects.dtype)
             object_rois_gt = np.hstack((zeros, gt_objects[:, :4]))
             object_rois_gt = network.np_to_variable(object_rois_gt, is_cuda=True)
@@ -346,8 +346,8 @@ class Hierarchical_Descriptive_Model(HDN_base):
 
         """
         ----------
-        object_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2]
-        region_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2]
+        object_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2] after RPN
+        region_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2] after RPN
         gt_objects:   (G_obj, 5) [x1 ,y1 ,x2, y2, obj_class] int
         gt_relationships: (G_obj, G_obj) [pred_class] int (-1 for no relationship)
         gt_regions:   (G_region, 4+40) [x1, y1, x2, y2, word_index] (-1 for padding)
@@ -372,7 +372,7 @@ class Hierarchical_Descriptive_Model(HDN_base):
         object_labels, object_rois, bbox_targets, bbox_inside_weights, bbox_outside_weights, mat_object, \
             phrase_label, phrase_rois, mat_phrase, region_seq, region_rois, \
             bbox_targets_region, bbox_inside_weights_region, bbox_outside_weights_region, mat_region= \
-            proposal_target_layer_py(object_rois, region_rois, gt_objects, gt_relationships, 
+            proposal_target_layer_py(object_rois, region_rois, gt_objects, gt_relationships,
                 gt_regions, n_classes_obj, voc_sign, is_training, graph_generation=graph_generation)
 
         # print labels.shape, bbox_targets.shape, bbox_inside_weights.shape
@@ -395,6 +395,7 @@ class Hierarchical_Descriptive_Model(HDN_base):
                 (phrase_rois, phrase_label), \
                 (region_rois, region_seq, bbox_targets_region, bbox_inside_weights_region, bbox_outside_weights_region), \
                 mat_object, mat_phrase, mat_region
+
 
     def interpret_HDN(self, cls_prob, bbox_pred, rois, cls_prob_predicate, 
                         mat_phrase, im_info, nms=True, clip=True, min_score=0.0, 

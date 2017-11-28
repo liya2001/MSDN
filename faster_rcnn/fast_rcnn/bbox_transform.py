@@ -124,3 +124,11 @@ def clip_boxes(boxes, im_shape):
     # y2 < im_shape[0]
     boxes[:, 3::4] = np.maximum(np.minimum(boxes[:, 3::4], im_shape[0] - 1), 0)
     return boxes
+
+
+def enlarge_rois(rois, ratio):
+	x0 = rois[:, 0] - 0.5*(ratio-1)*(rois[:, 2]-rois[:, 0])
+	y0 = rois[:, 1] - 0.5*(ratio-1)*(rois[:, 3]-rois[:, 1])
+	x1 = rois[:, 0] + 0.5*(ratio-1)*(rois[:, 2]-rois[:, 0])
+	y1 = rois[:, 1] + 0.5*(ratio-1)*(rois[:, 3]-rois[:, 1])
+	return np.vstack([x0, y0, x1, y1]).transpose()

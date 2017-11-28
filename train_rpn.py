@@ -13,7 +13,7 @@ import argparse
 
 import pdb
 
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 parser = argparse.ArgumentParser('Options for training RPN in pytorch')
 
 ## training settings
@@ -43,7 +43,7 @@ def main():
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=8, pin_memory=True)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=1, shuffle=False, num_workers=8, pin_memory=True)
-    net = RPN(not args.use_normal_anchors)
+    net = RPN(args.use_normal_anchors)
     if args.resume_training:
         print 'Resume training from: {}'.format(args.resume_model)
         if len(args.resume_model) == 0:
@@ -56,7 +56,7 @@ def main():
         print 'Training from scratch...Initializing network...'
         optimizer = torch.optim.SGD(list(net.parameters())[26:], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
 
-    network.set_trainable(net.features, requires_grad=False)
+    # network.set_trainable(net.features, requires_grad=False)
     net.cuda()
 
     if not os.path.exists(args.output_dir):
@@ -75,7 +75,7 @@ def main():
               'Recall: '
               'object: {recall[0]: .3f}%% (Best: {best_recall[0]: .3f}%%)'
               'region: {recall[1]: .3f}%% (Best: {best_recall[1]: .3f}%%)'.format(
-                epoch = epoch, recall=recall * 100, best_recall=best_recall * 100))
+                epoch=epoch, recall=recall * 100, best_recall=best_recall * 100))
         # update learning rate
         if epoch % args.step_size == 0:
             args.disable_clip_gradient = True
@@ -92,8 +92,6 @@ def main():
             save_name = os.path.join(args.output_dir, '{}_best.h5'.format(args.model_name, epoch))
             network.save_net(save_name, net)
 
-        
-
 
 def train(train_loader, target_net, optimizer, epoch):
     batch_time = network.AverageMeter()
@@ -106,12 +104,12 @@ def train(train_loader, target_net, optimizer, epoch):
 
     target_net.train()
     end = time.time()
-    for i, (im_data, im_info, gt_objects, gt_relationships, gt_regions) in enumerate(train_loader):
+    for i, (im_data, im_info, gt_objects, gt_relationships, gt_box_relationship) in enumerate(train_loader):
         # measure the data loading time
         data_time.update(time.time() - end)
 
         # Forward pass
-        target_net(im_data, im_info.numpy(), gt_objects.numpy()[0], gt_regions.numpy()[0])
+        target_net(im_data, im_info.numpy(), gt_objects.numpy()[0], gt_box_relationship.numpy()[0])
         # record loss
         loss = target_net.loss
         # total loss

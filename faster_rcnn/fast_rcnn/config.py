@@ -172,10 +172,10 @@ __C.TRAIN.RPN_NMS_THRESH = 0.7
 __C.TRAIN.RPN_NMS_THRESH_REGION = 0.75
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
 __C.TRAIN.RPN_PRE_NMS_TOP_N = 12000
-__C.TRAIN.RPN_PRE_NMS_TOP_N_REGION = 6000
+__C.TRAIN.RPN_PRE_NMS_TOP_N_REGION = 12000
 # Number of top scoring boxes to keep after applying NMS to RPN proposals
 __C.TRAIN.RPN_POST_NMS_TOP_N = 2000
-__C.TRAIN.RPN_POST_NMS_TOP_N_REGION = 2000
+__C.TRAIN.RPN_POST_NMS_TOP_N_REGION = 5000
 # Proposal height and width both need to be greater than RPN_MIN_SIZE (at orig image scale)
 __C.TRAIN.RPN_MIN_SIZE = 16
 __C.TRAIN.RPN_MIN_SIZE_REGION = 32
@@ -287,11 +287,11 @@ __C.EPS = 1e-14
 __C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
 
 # Data directory
-__C.DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data'))
+__C.DATA_DIR = osp.abspath('/home/PublicDataset/VisualGenome')
 
 # Image Data directory
-__C.IMG_DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data', 'visual_genome', 'VG_100K_images'))
-
+# __C.IMG_DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data', 'visual_genome', 'VG_100K_images'))
+__C.IMG_DATA_DIR = osp.abspath('/home/PublicDataset/VisualGenome/VG_100K_images')
 # Model directory
 __C.MODELS_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'models', 'pascal_voc'))
 

@@ -50,7 +50,7 @@ class RPN(nn.Module):
 
     anchor_scales_normal = [2, 4, 8, 16, 32, 64]
     anchor_ratios_normal = [0.25, 0.5, 1, 2, 4]
-    anchor_scales_normal_region = [4, 8, 16, 32, 64]
+    anchor_scales_normal_region = [4, 8, 16, 32, 64, 128]
     anchor_ratios_normal_region = [0.25, 0.5, 1, 2, 4]
 
     def __init__(self, use_kmeans_anchors=False):
@@ -121,7 +121,7 @@ class RPN(nn.Module):
     def loss(self):
         return self.cross_entropy + self.loss_box * 0.5 + self.cross_entropy_region + 1. * self.loss_box_region
 
-    def forward(self, im_data, im_info, gt_objects=None, gt_regions=None, dontcare_areas=None):
+    def forward(self, im_data, im_info, gt_objects=None, gt_box_relationship=None, dontcare_areas=None):
 
 
         im_data = Variable(im_data.cuda())
@@ -155,19 +155,19 @@ class RPN(nn.Module):
         # proposal layer
         cfg_key = 'TRAIN' if self.training else 'TEST'
         rois = self.proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info,
-                                   cfg_key, self._feat_stride, self.anchor_scales, self.anchor_ratios, 
-                                   is_region=False)
+                                   cfg_key, self._feat_stride, self.anchor_scales, self.anchor_ratios,
+                                   is_relationship=False)
         region_rois = self.proposal_layer(rpn_cls_prob_region_reshape, rpn_bbox_pred_region, im_info,
-                                   cfg_key, self._feat_stride, self.anchor_scales_region, self.anchor_ratios_region, 
-                                   is_region=True)
+                                   cfg_key, self._feat_stride, self.anchor_scales_region, self.anchor_ratios_region,
+                                          is_relationship=True)
 
         # generating training labels and build the rpn loss
         if self.training:
             rpn_data = self.anchor_target_layer(rpn_cls_score, gt_objects, dontcare_areas,
                                                 im_info, self.anchor_scales, self.anchor_ratios, self._feat_stride, )
-            rpn_data_region = self.anchor_target_layer(rpn_cls_score_region, gt_regions[:, :4], dontcare_areas,
+            rpn_data_region = self.anchor_target_layer(rpn_cls_score_region, gt_box_relationship[:, :4], dontcare_areas,
                                                 im_info, self.anchor_scales_region, self.anchor_ratios_region, \
-                                                self._feat_stride, is_region=True)
+                                                self._feat_stride, is_relationship=True)
             if DEBUG:
                 print 'rpn_data', rpn_data
                 print 'rpn_cls_score_reshape', rpn_cls_score_reshape
@@ -175,11 +175,11 @@ class RPN(nn.Module):
             self.cross_entropy, self.loss_box = \
                 self.build_loss(rpn_cls_score_reshape, rpn_bbox_pred, rpn_data)
             self.cross_entropy_region, self.loss_box_region = \
-                self.build_loss(rpn_cls_score_region_reshape, rpn_bbox_pred_region, rpn_data_region, is_region=True)
+                self.build_loss(rpn_cls_score_region_reshape, rpn_bbox_pred_region, rpn_data_region, is_relationship=True)
 
         return features, rois, region_rois
 
-    def build_loss(self, rpn_cls_score_reshape, rpn_bbox_pred, rpn_data, is_region=False):
+    def build_loss(self, rpn_cls_score_reshape, rpn_bbox_pred, rpn_data, is_relationship=False):
         # classification loss
         rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(-1, 2)
         rpn_label = rpn_data[0]
@@ -204,7 +204,7 @@ class RPN(nn.Module):
             print rpn_label.size()
             print fg_cnt
 
-        if is_region:
+        if is_relationship:
             self.tp_region = torch.sum(predict[:fg_cnt].eq(rpn_label.data[:fg_cnt]))
             self.tf_region = torch.sum(predict[fg_cnt:].eq(rpn_label.data[fg_cnt:]))
             self.fg_cnt_region = fg_cnt
@@ -252,16 +252,16 @@ class RPN(nn.Module):
 
     @staticmethod
     def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key, 
-                    _feat_stride, anchor_scales, anchor_ratios, is_region):
+                    _feat_stride, anchor_scales, anchor_ratios, is_relationship):
         rpn_cls_prob_reshape = rpn_cls_prob_reshape.data.cpu().numpy()
         rpn_bbox_pred = rpn_bbox_pred.data.cpu().numpy()
         x = proposal_layer_py(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, 
-                    cfg_key, _feat_stride, anchor_scales, anchor_ratios, is_region=is_region)
+                    cfg_key, _feat_stride, anchor_scales, anchor_ratios, is_relationship=is_relationship)
         x = network.np_to_variable(x, is_cuda=True)
         return x.view(-1, 5)
 
     @staticmethod
-    def anchor_target_layer(rpn_cls_score, gt_boxes, dontcare_areas, im_info, _feat_stride, anchor_scales, anchor_rotios, is_region=False):
+    def anchor_target_layer(rpn_cls_score, gt_boxes, dontcare_areas, im_info, _feat_stride, anchor_scales, anchor_rotios, is_relationship=False):
         """
         rpn_cls_score: for pytorch (1, Ax2, H, W) bg/fg scores of previous conv layer
         gt_boxes: (G, 5) vstack of [x1, y1, x2, y2, class]
@@ -282,7 +282,7 @@ class RPN(nn.Module):
         """
         rpn_cls_score = rpn_cls_score.data.cpu().numpy()
         rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = \
-            anchor_target_layer_py(rpn_cls_score, gt_boxes, dontcare_areas, im_info, _feat_stride, anchor_scales, anchor_rotios, is_region=is_region)
+            anchor_target_layer_py(rpn_cls_score, gt_boxes, dontcare_areas, im_info, _feat_stride, anchor_scales, anchor_rotios, is_relationship=is_relationship)
 
         rpn_labels = network.np_to_variable(rpn_labels, is_cuda=True, dtype=torch.LongTensor)
         rpn_bbox_targets = network.np_to_variable(rpn_bbox_targets, is_cuda=True)

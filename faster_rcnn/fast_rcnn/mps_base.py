@@ -85,13 +85,13 @@ class Hierarchical_Message_Passing_Structure_base(nn.Module):
 
 		self.GRU_object = Gated_Recurrent_Unit(fea_size, dropout) # nn.GRUCell(fea_size, fea_size) #
 		self.GRU_phrase = Gated_Recurrent_Unit(fea_size, dropout)
+		self.use_region = use_region
 
 		if use_region:
 			self.gate_pred2reg = Message_Passing_Unit(fea_size, gate_width) 
 			self.gate_reg2pred = Message_Passing_Unit(fea_size, gate_width) 
 			self.GRU_region = Gated_Recurrent_Unit(fea_size, dropout)
 		
-
 
 	def forward(self, feature_obj, feature_phrase, feature_region, mps_object, mps_phrase, mps_region):
 		raise Exception('Please implement the forward function')

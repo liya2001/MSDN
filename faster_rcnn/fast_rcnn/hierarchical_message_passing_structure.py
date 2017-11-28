@@ -11,6 +11,7 @@ from config import cfg
 
 TIME_IT = cfg.TIME_IT
 
+# TODO: change use_region to False if don't use caption info
 class Hierarchical_Message_Passing_Structure(Hierarchical_Message_Passing_Structure_base):
 	def __init__(self, fea_size, dropout=False, gate_width=128, use_kernel_function=False):
 		super(Hierarchical_Message_Passing_Structure, self).__init__(fea_size, dropout, gate_width, 
@@ -26,10 +27,11 @@ class Hierarchical_Message_Passing_Structure(Hierarchical_Message_Passing_Struct
 		t.tic()
 
 		# object updating
-		object_sub = self.prepare_message(feature_obj, feature_phrase, mps_object[:, 0, :], self.gate_pred2sub)
-		object_obj = self.prepare_message(feature_obj, feature_phrase, mps_object[:, 1, :], self.gate_pred2obj)
-		GRU_input_feature_object = (object_sub + object_obj) / 2.
-		out_feature_object = feature_obj + self.GRU_object(GRU_input_feature_object, feature_obj)
+		# feature_obj:256*1024   feature_phrase:512*1024    mps_object[:, 0, :]:256*512
+		object_sub = self.prepare_message(feature_obj, feature_phrase, mps_object[:, 0, :], self.gate_pred2sub)  #256 * 1024
+		object_obj = self.prepare_message(feature_obj, feature_phrase, mps_object[:, 1, :], self.gate_pred2obj)  #256 * 1024
+		GRU_input_feature_object = (object_sub + object_obj) / 2.  #256 * 1024
+		out_feature_object = feature_obj + self.GRU_object(GRU_input_feature_object, feature_obj)  #256 * 1024
 		if TIME_IT:
 			torch.cuda.synchronize()
 			print '\t\t[object pass]:\t%.3fs' % (t.toc(average=False))
@@ -43,9 +45,12 @@ class Hierarchical_Message_Passing_Structure(Hierarchical_Message_Passing_Struct
 		fea_obj2pred = torch.index_select(feature_obj, 0, indices_obj)
 		phrase_sub = self.gate_sub2pred(feature_phrase, fea_sub2pred)
 		phrase_obj = self.gate_obj2pred(feature_phrase,  fea_obj2pred)
-		# pdb.set_trace()
-		phrase_region = self.prepare_message(feature_phrase, feature_region, mps_phrase[:, 2:], self.gate_reg2pred)
-		GRU_input_feature_phrase =  phrase_sub / 3. + phrase_obj / 3. + phrase_region / 3.
+
+		if self.use_region:
+			phrase_region = self.prepare_message(feature_phrase, feature_region, mps_phrase[:, 2:], self.gate_reg2pred)
+			GRU_input_feature_phrase =  (phrase_sub + phrase_obj + phrase_region) / 3.
+		else:
+			GRU_input_feature_phrase = (phrase_sub + phrase_obj) / 2.
 		if TIME_IT:
 			torch.cuda.synchronize()
 			print '\t\t[phrase pass]:\t%.3fs' % (t.toc(average=False))

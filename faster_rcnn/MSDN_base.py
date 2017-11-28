@@ -290,8 +290,6 @@ class HDN_base(nn.Module):
             own_dict[key].copy_(param)
 
 
-
-
     def object_detection(self, image_path, gt_boxes=None):
         min_score = 1/150.
         image = cv2.imread(image_path)

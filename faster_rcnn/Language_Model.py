@@ -86,8 +86,7 @@ class Language_Model(nn.Module):
             output_mask = input_seq.eq(self.end)
             target_seq[output_mask] = self.null
             seq_embed = self.encoder(input_seq)
-            hidden_feat = self.lstm_im(\
-                    input.view(1, im_batch_size, im_feature_size).expand(1, seq_batch_size, im_feature_size))[1]
+            hidden_feat = self.lstm_im(input.view(1, im_batch_size, im_feature_size).expand(1, seq_batch_size, im_feature_size))[1]
             output, hidden_feat = self.lstm_word(seq_embed, hidden_feat)
             output = self.decoder(output.view(-1, output.size(2)))
             loss = F.cross_entropy(output, target_seq.view(-1), weight=self.word_weight)
@@ -256,6 +255,6 @@ class Language_Model(nn.Module):
 
 
 
-    def init_hidden(self, bsz):
-        return (Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()),
-                Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))
+    # def init_hidden(self, bsz):
+    #     return (Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()),
+    #             Variable(weight.new(self.num_layers, bsz, self.rnn_size).zero_()))

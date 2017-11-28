@@ -33,8 +33,8 @@ DEBUG = False
 def proposal_target_layer(object_rois, region_rois, gt_objects, gt_relationships, 
                 gt_regions, n_classes_obj, voc_eos, is_training, graph_generation=False):
 
-    #     object_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2]
-    #     region_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2]
+    #     object_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2] proposed by RPN
+    #     region_rois:  (1 x H x W x A, 5) [0, x1, y1, x2, y2] proposed by RPN
     #     gt_objects:   (G_obj, 5) [x1 ,y1 ,x2, y2, obj_class] float
     #     gt_relationships: (G_obj, G_obj) [pred_class] int (-1 for no relationship)
     #     gt_regions:   (G_region, 4+40) [x1, y1, x2, y2, word_index] (imdb.eos for padding)
@@ -61,6 +61,7 @@ def proposal_target_layer(object_rois, region_rois, gt_objects, gt_relationships
     if is_training:
         all_rois = object_rois
         zeros = np.zeros((gt_objects.shape[0], 1), dtype=gt_objects.dtype)
+        # add gt_obj to predict_rois
         all_rois = np.vstack(
             (all_rois, np.hstack((zeros, gt_objects[:, :4])))
         )
@@ -140,7 +141,7 @@ def proposal_target_layer(object_rois, region_rois, gt_objects, gt_relationships
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
     """Bounding-box regression targets (bbox_target_data) are stored in a
-    compact form N x (class, tx, ty, tw, th)
+    compact form N x (class, tx, ty, tw, th) where N =256 here
 
     This function expands those targets into the 4-of-4*K representation used
     by the network (i.e. only one class has non-zero targets).
@@ -188,11 +189,13 @@ def _sample_rois(object_rois, region_rois, gt_objects, gt_relationships, gt_regi
     rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
     fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
+	# In training stage use gt_obj to choose proper predict obj_roi, here obj_roi got by rpn and concat with gt_box
     overlaps = bbox_overlaps(
         np.ascontiguousarray(object_rois[:, 1:5], dtype=np.float),
         np.ascontiguousarray(gt_objects[:, :4], dtype=np.float))
     gt_assignment = overlaps.argmax(axis=1)
     max_overlaps = overlaps.max(axis=1)
+    # Predict label of rpn+gt objs = pre_sampled objs
     labels = gt_objects[gt_assignment, 4]
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
@@ -226,7 +229,7 @@ def _sample_rois(object_rois, region_rois, gt_objects, gt_relationships, gt_regi
     # Clamp labels for the background RoIs to 0
     labels[fg_rois_per_this_image:] = 0
     rois = object_rois[keep_inds]
-
+	# calculate target data for
     bbox_target_data = _compute_targets(
         rois[:, 1:5], gt_objects[gt_assignment[keep_inds], :4], labels)
 
@@ -235,20 +238,21 @@ def _sample_rois(object_rois, region_rois, gt_objects, gt_relationships, gt_regi
 
 #### prepare relationships targets
 
-
+	# gt_assignment is the correct gt_box that predict box belong to.
     rel_per_image = int(cfg.TRAIN.BATCH_SIZE_RELATIONSHIP / num_images)
     rel_bg_num = rel_per_image
     if fg_inds.size > 0:
-        assert fg_inds.size == fg_inds.shape[0]
-        id_i, id_j = np.meshgrid(xrange(fg_inds.size), xrange(fg_inds.size), indexing='ij') # Grouping the input object rois
+        # fg_inds is the index of object_rois and labels to get fg_predict_rois
+        # Grouping the input object rois
+        id_i, id_j = np.meshgrid(xrange(fg_inds.size), xrange(fg_inds.size), indexing='ij')
         id_i = id_i.reshape(-1) 
         id_j = id_j.reshape(-1)
+        # use gt_relationships to choose pair sbj and obj box and relation type.
         pair_labels = gt_relationships[gt_assignment[fg_inds[id_i]], gt_assignment[fg_inds[id_j]]]
+        # index of positive predict relationship
         fg_id_rel = np.where(pair_labels > 0)[0]
         rel_fg_num = fg_id_rel.size
         rel_fg_num = int(min(np.round(rel_per_image * cfg.TRAIN.FG_FRACTION_RELATIONSHIP), rel_fg_num))
-        # print 'rel_fg_num'
-        # print rel_fg_num
         if rel_fg_num > 0:
             fg_id_rel = npr.choice(fg_id_rel, size=rel_fg_num, replace=False)
         else:
@@ -429,8 +433,6 @@ def _sample_regions(region_rois, phrase_rois, gt_regions, num_images, voc_eos):
 
 
     return labels, rois, mat_phrase_part, mat_region, bbox_targets, bbox_inside_weight
-
-
 
 
 def _prepare_mat(sub_list, obj_list, object_batchsize):
