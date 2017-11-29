@@ -156,7 +156,7 @@ __C.TRAIN.PRECLUDE_HARD_SAMPLES = True
 __C.TRAIN.HAS_RPN = True
 # IOU >= thresh: positive example
 __C.TRAIN.RPN_POSITIVE_OVERLAP = 0.7
-__C.TRAIN.RPN_POSITIVE_OVERLAP_REGION = 0.7
+__C.TRAIN.RPN_POSITIVE_OVERLAP_REGION = 0.6
 # IOU < thresh: negative example
 __C.TRAIN.RPN_NEGATIVE_OVERLAP = 0.3
 __C.TRAIN.RPN_NEGATIVE_OVERLAP_REGION = 0.4
@@ -282,6 +282,7 @@ __C.RNG_SEED = 3
 
 # A small number that's used many times
 __C.EPS = 1e-14
+
 
 # Root directory of project
 __C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))

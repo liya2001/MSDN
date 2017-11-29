@@ -156,9 +156,9 @@ def proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, cfg_key,
     scores = scores[keep]
 
 	# enlarge the relationship proposal by a certain ratio
-    if is_relationship:
-	    proposals = enlarge_rois(proposals, 1.1)
-	    proposals = clip_boxes(proposals, im_info[:2])
+	# if is_relationship:
+	#     proposals = enlarge_rois(proposals, 1.1)
+	#     proposals = clip_boxes(proposals, im_info[:2])
 
     # Output rois blob
     # Our RPN implementation only supports a single input image, so all

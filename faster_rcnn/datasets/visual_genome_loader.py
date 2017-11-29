@@ -104,9 +104,9 @@ class visual_genome(data.Dataset):
 		for rel in _annotation['relationships']:
 			gt_relationships[rel['sub_id'], rel['obj_id']] = rel['predicate']
 
-		gt_box_relationship = self.get_gt_box_relationship(gt_boxes_object, gt_relationships)
+		gt_boxes_relationship = self.get_gt_box_relationship(gt_boxes_object, gt_relationships)
 
-		return img, im_info, gt_boxes_object, gt_relationships, gt_box_relationship
+		return img, im_info, gt_boxes_object, gt_relationships, gt_boxes_relationship
 
 	def __len__(self):
 		return len(self.annotations)

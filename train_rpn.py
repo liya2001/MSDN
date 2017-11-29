@@ -29,7 +29,7 @@ parser.add_argument('--step_size', type=int, default=2, help='step to decay the 
 parser.add_argument('--pretrained_model', type=str, default='model/pretrained_models/VGG_imagenet.npy', help='Path for the to-evaluate model')
 parser.add_argument('--dataset_option', type=str, default='small', help='The dataset to use (small | normal | fat)')
 parser.add_argument('--output_dir', type=str, default='./output/RPN', help='Location to output the model')
-parser.add_argument('--model_name', type=str, default='RPN_region', help='model name for snapshot')
+parser.add_argument('--model_name', type=str, default='RPN_relationship', help='model name for snapshot')
 parser.add_argument('--resume_training', action='store_true', help='Resume training from the model [resume_model]')
 parser.add_argument('--resume_model', type=str, default='', help='The model we resume')
 args = parser.parse_args()
@@ -56,7 +56,7 @@ def main():
         print 'Training from scratch...Initializing network...'
         optimizer = torch.optim.SGD(list(net.parameters())[26:], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
 
-    # network.set_trainable(net.features, requires_grad=False)
+    network.set_trainable(net.features, requires_grad=False)
     net.cuda()
 
     if not os.path.exists(args.output_dir):
@@ -74,7 +74,7 @@ def main():
         print('Epoch[{epoch:d}]: '
               'Recall: '
               'object: {recall[0]: .3f}%% (Best: {best_recall[0]: .3f}%%)'
-              'region: {recall[1]: .3f}%% (Best: {best_recall[1]: .3f}%%)'.format(
+              'relationship: {recall[1]: .3f}%% (Best: {best_recall[1]: .3f}%%)'.format(
                 epoch=epoch, recall=recall * 100, best_recall=best_recall * 100))
         # update learning rate
         if epoch % args.step_size == 0:
@@ -118,10 +118,10 @@ def train(train_loader, target_net, optimizer, epoch):
         train_loss_obj_box.update(target_net.loss_box.data[0], im_data.size(0))
         # object score
         train_loss_obj_entropy.update(target_net.cross_entropy.data[0], im_data.size(0))
-        # region bbox reg
-        train_loss_reg_box.update(target_net.loss_box_region.data[0], im_data.size(0))
-        # region score
-        train_loss_reg_entropy.update(target_net.cross_entropy_region.data[0], im_data.size(0))
+        # relationship bbox reg
+        train_loss_reg_box.update(target_net.loss_box_relationship.data[0], im_data.size(0))
+        # relationship score
+        train_loss_reg_entropy.update(target_net.cross_entropy_relationship.data[0], im_data.size(0))
 
         # backward
         optimizer.zero_grad()
@@ -142,13 +142,13 @@ def train(train_loader, target_net, optimizer, epoch):
                   '\t[object]: '
                   'cls_loss: {cls_loss_object.avg:.3f}\t'
                   'reg_loss: {reg_loss_object.avg:.3f}\n'
-                  '\t[region]: '
-                  'cls_loss: {cls_loss_region.avg:.3f}\t'
-                  'reg_loss: {reg_loss_region.avg:.3f}\t'.format(
+                  '\t[relationship]: '
+                  'cls_loss: {cls_loss_relationship.avg:.3f}\t'
+                  'reg_loss: {reg_loss_relationship.avg:.3f}\t'.format(
                    epoch, i + 1, len(train_loader), batch_time=batch_time,lr=args.lr, 
                    data_time=data_time, loss=train_loss, 
                    cls_loss_object=train_loss_obj_entropy, reg_loss_object=train_loss_obj_box, 
-                   cls_loss_region=train_loss_reg_entropy, reg_loss_region=train_loss_reg_box))
+                   cls_loss_relationship=train_loss_reg_entropy, reg_loss_relationship=train_loss_reg_box))
 
 
 
@@ -160,14 +160,14 @@ def test(test_loader, target_net):
 
     batch_time = network.AverageMeter()
     end = time.time()
-    for i, (im_data, im_info, gt_objects, gt_relationships, gt_regions) in enumerate(test_loader):
+    for i, (im_data, im_info, gt_objects, gt_relationships, gt_boxes_relationship) in enumerate(test_loader):
         correct_cnt_t, total_cnt_t = np.array([0, 0]), np.array([0, 0])
         # Forward pass
-        object_rois, region_rois = target_net(im_data, im_info.numpy(), gt_objects.numpy(), gt_regions.numpy())[1:]
+        object_rois, relationship_rois = target_net(im_data, im_info.numpy(), gt_objects.numpy(), gt_boxes_relationship.numpy())[1:]
         box_num[0] += object_rois.size(0)
-        box_num[1] += region_rois.size(0)
+        box_num[1] += relationship_rois.size(0)
         correct_cnt_t[0], total_cnt_t[0] = check_recall(object_rois, gt_objects[0].numpy(), 50)
-        correct_cnt_t[1], total_cnt_t[1] = check_recall(region_rois, gt_regions[0].numpy(), 50)
+        correct_cnt_t[1], total_cnt_t[1] = check_recall(relationship_rois, gt_boxes_relationship[0].numpy(), 50)
         correct_cnt += correct_cnt_t
         total_cnt += total_cnt_t
         batch_time.update(time.time() - end)
@@ -175,7 +175,7 @@ def test(test_loader, target_net):
         if (i + 1) % 100 == 0 and i > 0:
             print('[{0}/{10}]  Time: {1:2.3f}s/img).'
                   '\t[object] Avg: {2:2.2f} Boxes/im, Top-50 recall: {3:2.3f} ({4:d}/{5:d})' 
-                  '\t[region] Avg: {6:2.2f} Boxes/im, Top-50 recall: {7:2.3f} ({8:d}/{9:d})'.format(
+                  '\t[relationship] Avg: {6:2.2f} Boxes/im, Top-50 recall: {7:2.3f} ({8:d}/{9:d})'.format(
                     i + 1, batch_time.avg, 
                     box_num[0] / float(i + 1), correct_cnt[0] / float(total_cnt[0])* 100, correct_cnt[0], total_cnt[0], 
                     box_num[1] / float(i + 1), correct_cnt[1] / float(total_cnt[1])* 100, correct_cnt[1], total_cnt[1], 
