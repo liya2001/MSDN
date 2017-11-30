@@ -48,9 +48,9 @@ class RPN(nn.Module):
     anchor_ratios_kmeans_relationship =  [2.796, 2.810, 0.981, 0.416, 0.381, 0.422, 2.358, 1.445, 1.298, 1.690, 0.680, 0.201, 0.636, 0.979, \
             0.590, 1.006, 0.956, 0.327, 0.872, 0.455, 2.201, 1.478, 0.657, 0.224, 0.181, ]
 
-    anchor_scales_normal = [2, 4, 8, 16, 32, 64]
+    anchor_scales_normal = [2, 4, 8, 16, 32, 64, 128]
     anchor_ratios_normal = [0.25, 0.5, 1, 2, 4]
-    anchor_scales_normal_relationship = [4, 8, 16, 32, 64, 128]
+    anchor_scales_normal_relationship = [4, 8, 16, 32, 64, 128, 256]
     anchor_ratios_normal_relationship = [0.25, 0.5, 1, 2, 4]
 
     def __init__(self, use_kmeans_anchors=False):
