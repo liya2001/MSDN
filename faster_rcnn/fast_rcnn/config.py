@@ -171,8 +171,8 @@ __C.TRAIN.RPN_BATCHSIZE = 512
 __C.TRAIN.RPN_NMS_THRESH = 0.75
 __C.TRAIN.RPN_NMS_THRESH_REGION = 0.75
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
-__C.TRAIN.RPN_PRE_NMS_TOP_N = 12000
-__C.TRAIN.RPN_PRE_NMS_TOP_N_REGION = 12000
+__C.TRAIN.RPN_PRE_NMS_TOP_N = 20000
+__C.TRAIN.RPN_PRE_NMS_TOP_N_REGION = 20000
 # Number of top scoring boxes to keep after applying NMS to RPN proposals
 __C.TRAIN.RPN_POST_NMS_TOP_N = 5000
 __C.TRAIN.RPN_POST_NMS_TOP_N_REGION = 5000

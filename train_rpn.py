@@ -50,11 +50,11 @@ def main():
             raise Exception('[resume_model] not specified')
         network.load_net(args.resume_model, net)
         optimizer = torch.optim.SGD([
-                {'params': list(net.parameters())[282:]},
+                {'params': list(net.parameters())[312:]},
                 ], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
     else:
         print 'Training from scratch...Initializing network...'
-        optimizer = torch.optim.SGD(list(net.parameters())[282:], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
+        optimizer = torch.optim.SGD(list(net.parameters())[312:], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
 
     network.set_trainable(net.features, requires_grad=False)
     net.cuda()

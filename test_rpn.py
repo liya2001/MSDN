@@ -46,7 +46,7 @@ def main():
 	# train_loader = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=8, pin_memory=True)
 	test_loader = torch.utils.data.DataLoader(test_set, batch_size=1, shuffle=False, num_workers=8, pin_memory=True)
 	net = RPN(args.use_normal_anchors)
-	network.load_net('./output/RPN/RPN_region_epoch_0.h5', net)
+	network.load_net('./output/RPN/RPN_region_best.h5', net)
 	# network.set_trainable(net.features, requires_grad=False)
 	net.cuda()
 

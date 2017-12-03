@@ -36,7 +36,7 @@ def nms_detections(pred_boxes, scores, nms_thresh, inds=None):
 
 
 class RPN(nn.Module):
-    _feat_stride = [16, ]
+    _feat_stride = [32, ]
     
     anchor_scales_kmeans = [19.944, 9.118, 35.648, 42.102, 23.476, 15.882, 6.169, 9.702, 6.072, 32.254, 3.294, 10.148, 22.443, \
             13.831, 16.250, 27.969, 14.181, 27.818, 34.146, 29.812, 14.219, 22.309, 20.360, 24.025, 40.593, ]
@@ -48,9 +48,9 @@ class RPN(nn.Module):
     # anchor_ratios_kmeans_relationship =  [2.796, 2.810, 0.981, 0.416, 0.381, 0.422, 2.358, 1.445, 1.298, 1.690, 0.680, 0.201, 0.636, 0.979, \
     #         0.590, 1.006, 0.956, 0.327, 0.872, 0.455, 2.201, 1.478, 0.657, 0.224, 0.181, ]
 
-    anchor_scales_normal = [4, 8, 16, 32, 64, 128, 256]
+    anchor_scales_normal = [2, 4, 8, 16, 32, 64, 128, 256]
     anchor_ratios_normal = [0.25, 0.5, 1, 2, 4]
-    anchor_scales_normal_relationship = [8, 16, 32, 64, 128, 256, 512]
+    anchor_scales_normal_relationship = [4, 8, 16, 32, 64, 128, 256, 512]
     anchor_ratios_normal_relationship = [0.25, 0.5, 1, 2, 4]
 
     def __init__(self, use_kmeans_anchors=False):
@@ -83,7 +83,7 @@ class RPN(nn.Module):
         # self.features.__delattr__('30') # to delete the max pooling
         resnet101 = models.resnet101(pretrained=True)
         self.features = nn.Sequential(resnet101.conv1, resnet101.bn1, resnet101.relu, resnet101.maxpool,
-                                      resnet101.layer1, resnet101.layer2, resnet101.layer3, resnet101.layer3)
+                                      resnet101.layer1, resnet101.layer2, resnet101.layer3, resnet101.layer4)
         # self.features.__delattr__('avgpool')
         # self.features.__delattr__('fc')
 
@@ -91,11 +91,11 @@ class RPN(nn.Module):
         # network.set_trainable_param(list(self.features.parameters())[:8], requires_grad=False)
 
         # self.features = models.vgg16().features
-        self.conv1 = Conv2d(1024, 512, 3, same_padding=True)
+        self.conv1 = Conv2d(2048, 512, 3, same_padding=True)
         self.score_conv = Conv2d(512, self.anchor_num * 2, 1, relu=False, same_padding=False)
         self.bbox_conv = Conv2d(512, self.anchor_num * 4, 1, relu=False, same_padding=False)
 
-        self.conv1_relationship = Conv2d(1024, 512, 3, same_padding=True)
+        self.conv1_relationship = Conv2d(2048, 512, 3, same_padding=True)
         self.score_conv_relationship = Conv2d(512, self.anchor_num_relationship * 2, 1, relu=False, same_padding=False)
         self.bbox_conv_relationship = Conv2d(512, self.anchor_num_relationship * 4, 1, relu=False, same_padding=False)
 
@@ -213,19 +213,22 @@ class RPN(nn.Module):
             print fg_cnt
 
         if is_relationship:
-            self.tp_relationship = torch.sum(predict[:fg_cnt].eq(rpn_label.data[:fg_cnt]))
-            self.tf_relationship = torch.sum(predict[fg_cnt:].eq(rpn_label.data[fg_cnt:]))
+            # self.tp_relationship = torch.sum(predict[:fg_cnt].eq(rpn_label.data[:fg_cnt]))
+            # self.tf_relationship = torch.sum(predict[fg_cnt:].eq(rpn_label.data[fg_cnt:]))
             self.fg_cnt_relationship = fg_cnt
             self.bg_cnt_relationship = bg_cnt
-            if DEBUG:
-                print 'accuracy: %2.2f%%' % ((self.tp + self.tf) / float(fg_cnt + bg_cnt) * 100)
+            # if DEBUG:
+            #     print 'accuracy: %2.2f%%' % ((self.tp + self.tf) / float(fg_cnt + bg_cnt) * 100)
         else:
-            self.tp = torch.sum(predict[:fg_cnt].eq(rpn_label.data[:fg_cnt]))
-            self.tf = torch.sum(predict[fg_cnt:].eq(rpn_label.data[fg_cnt:]))
+            # self.tp = torch.sum(predict[:fg_cnt].eq(rpn_label.data[:fg_cnt]))
+            # try:
+            #     self.tf = torch.sum(predict[fg_cnt:].eq(rpn_label.data[fg_cnt:]))
+            # except:
+	         #    self.tf = 0
             self.fg_cnt = fg_cnt
             self.bg_cnt = bg_cnt
-            if DEBUG:
-                print 'accuracy: %2.2f%%' % ((self.tp + self.tf) / float(fg_cnt + bg_cnt) * 100)
+            # if DEBUG:
+            #     print 'accuracy: %2.2f%%' % ((self.tp + self.tf) / float(fg_cnt + bg_cnt) * 100)
 
         rpn_cross_entropy = F.cross_entropy(rpn_cls_score, rpn_label)
         # print rpn_cross_entropy
