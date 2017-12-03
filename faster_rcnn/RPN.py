@@ -43,14 +43,14 @@ class RPN(nn.Module):
     anchor_ratios_kmeans =  [2.631, 2.304, 0.935, 0.654, 0.173, 0.720, 0.553, 0.374, 1.565, 0.463, 0.985, 0.914, 0.734, 2.671, \
             0.209, 1.318, 1.285, 2.717, 0.369, 0.718, 0.319, 0.218, 1.319, 0.442, 1.437, ]
 
-    anchor_scales_kmeans_relationship = [18.865, 27.466, 35.138, 9.383, 34.770, 31.223, 14.003, 40.663, 20.187, 6.062, 31.354, 21.213, \
-            19.379, 9.843, 5.980, 3.271, 14.700, 12.794, 25.936, 24.221, 9.690, 27.328, 41.850, 16.087, 23.949,]
-    anchor_ratios_kmeans_relationship =  [2.796, 2.810, 0.981, 0.416, 0.381, 0.422, 2.358, 1.445, 1.298, 1.690, 0.680, 0.201, 0.636, 0.979, \
-            0.590, 1.006, 0.956, 0.327, 0.872, 0.455, 2.201, 1.478, 0.657, 0.224, 0.181, ]
+    # anchor_scales_kmeans_relationship = [18.865, 27.466, 35.138, 9.383, 34.770, 31.223, 14.003, 40.663, 20.187, 6.062, 31.354, 21.213, \
+    #         19.379, 9.843, 5.980, 3.271, 14.700, 12.794, 25.936, 24.221, 9.690, 27.328, 41.850, 16.087, 23.949,]
+    # anchor_ratios_kmeans_relationship =  [2.796, 2.810, 0.981, 0.416, 0.381, 0.422, 2.358, 1.445, 1.298, 1.690, 0.680, 0.201, 0.636, 0.979, \
+    #         0.590, 1.006, 0.956, 0.327, 0.872, 0.455, 2.201, 1.478, 0.657, 0.224, 0.181, ]
 
-    anchor_scales_normal = [2, 4, 8, 16, 32, 64, 128]
+    anchor_scales_normal = [4, 8, 16, 32, 64, 128, 256]
     anchor_ratios_normal = [0.25, 0.5, 1, 2, 4]
-    anchor_scales_normal_relationship = [4, 8, 16, 32, 64, 128, 256]
+    anchor_scales_normal_relationship = [8, 16, 32, 64, 128, 256, 512]
     anchor_ratios_normal_relationship = [0.25, 0.5, 1, 2, 4]
 
     def __init__(self, use_kmeans_anchors=False):
@@ -60,8 +60,10 @@ class RPN(nn.Module):
             print 'using k-means anchors'
             self.anchor_scales = self.anchor_scales_kmeans
             self.anchor_ratios = self.anchor_ratios_kmeans
-            self.anchor_scales_relationship = self.anchor_scales_kmeans_relationship
-            self.anchor_ratios_relationship = self.anchor_ratios_kmeans_relationship
+            self.anchor_scales_relationship, self.anchor_ratios_relationship = \
+                np.meshgrid(self.anchor_scales_normal_relationship, self.anchor_ratios_normal_relationship, indexing='ij')
+            self.anchor_scales_relationship = self.anchor_scales_relationship.reshape(-1)
+            self.anchor_ratios_relationship = self.anchor_ratios_relationship.reshape(-1)
         else:
             print 'using normal anchors'
             self.anchor_scales, self.anchor_ratios = \
@@ -77,17 +79,23 @@ class RPN(nn.Module):
         self.anchor_num_relationship = len(self.anchor_scales_relationship)
 
         # self.features = VGG16(bn=False)
-        self.features = models.vgg16(pretrained=True).features
-        self.features.__delattr__('30') # to delete the max pooling
+        # self.features = models.vgg16(pretrained=True).features
+        # self.features.__delattr__('30') # to delete the max pooling
+        resnet101 = models.resnet101(pretrained=True)
+        self.features = nn.Sequential(resnet101.conv1, resnet101.bn1, resnet101.relu, resnet101.maxpool,
+                                      resnet101.layer1, resnet101.layer2, resnet101.layer3, resnet101.layer3)
+        # self.features.__delattr__('avgpool')
+        # self.features.__delattr__('fc')
+
         # by default, fix the first four layers
-        network.set_trainable_param(list(self.features.parameters())[:8], requires_grad=False) 
+        # network.set_trainable_param(list(self.features.parameters())[:8], requires_grad=False)
 
         # self.features = models.vgg16().features
-        self.conv1 = Conv2d(512, 512, 3, same_padding=True)
+        self.conv1 = Conv2d(1024, 512, 3, same_padding=True)
         self.score_conv = Conv2d(512, self.anchor_num * 2, 1, relu=False, same_padding=False)
         self.bbox_conv = Conv2d(512, self.anchor_num * 4, 1, relu=False, same_padding=False)
 
-        self.conv1_relationship = Conv2d(512, 512, 3, same_padding=True)
+        self.conv1_relationship = Conv2d(1024, 512, 3, same_padding=True)
         self.score_conv_relationship = Conv2d(512, self.anchor_num_relationship * 2, 1, relu=False, same_padding=False)
         self.bbox_conv_relationship = Conv2d(512, self.anchor_num_relationship * 4, 1, relu=False, same_padding=False)
 

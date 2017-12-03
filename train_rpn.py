@@ -50,11 +50,11 @@ def main():
             raise Exception('[resume_model] not specified')
         network.load_net(args.resume_model, net)
         optimizer = torch.optim.SGD([
-                {'params': list(net.parameters())[26:]}, 
+                {'params': list(net.parameters())[282:]},
                 ], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
     else:
         print 'Training from scratch...Initializing network...'
-        optimizer = torch.optim.SGD(list(net.parameters())[26:], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
+        optimizer = torch.optim.SGD(list(net.parameters())[282:], lr=args.lr, momentum=args.momentum, weight_decay=0.0005)
 
     network.set_trainable(net.features, requires_grad=False)
     net.cuda()
@@ -166,8 +166,8 @@ def test(test_loader, target_net):
         object_rois, relationship_rois = target_net(im_data, im_info.numpy(), gt_objects.numpy(), gt_boxes_relationship.numpy())[1:]
         box_num[0] += object_rois.size(0)
         box_num[1] += relationship_rois.size(0)
-        correct_cnt_t[0], total_cnt_t[0] = check_recall(object_rois, gt_objects[0].numpy(), 5000)
-        correct_cnt_t[1], total_cnt_t[1] = check_recall(relationship_rois, gt_boxes_relationship[0].numpy(), 5000)
+        correct_cnt_t[0], total_cnt_t[0] = check_recall(object_rois, gt_objects[0].numpy(), 2000)
+        correct_cnt_t[1], total_cnt_t[1] = check_recall(relationship_rois, gt_boxes_relationship[0].numpy(), 1000)
         correct_cnt += correct_cnt_t
         total_cnt += total_cnt_t
         batch_time.update(time.time() - end)
