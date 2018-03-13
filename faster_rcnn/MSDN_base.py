@@ -108,7 +108,8 @@ class HDN_base(nn.Module):
     @property
     def loss(self):
         return self.cross_entropy_object + self.loss_obj_box + \
-               self.cross_entropy_predicate * 1 + self.region_caption_loss + self.loss_region_box
+               self.cross_entropy_predicate * 1
+        # + self.region_caption_loss + self.loss_region_box
     
 
 

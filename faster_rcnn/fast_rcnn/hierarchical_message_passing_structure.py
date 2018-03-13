@@ -14,7 +14,7 @@ TIME_IT = cfg.TIME_IT
 class Hierarchical_Message_Passing_Structure(Hierarchical_Message_Passing_Structure_base):
 	def __init__(self, fea_size, dropout=False, gate_width=128, use_kernel_function=False):
 		super(Hierarchical_Message_Passing_Structure, self).__init__(fea_size, dropout, gate_width, 
-						use_region=True, use_kernel_function=use_kernel_function)
+						use_region=False, use_kernel_function=use_kernel_function)
 
 	def forward(self, feature_obj, feature_phrase, feature_region, mps_object, mps_phrase, mps_region):
 
@@ -44,8 +44,11 @@ class Hierarchical_Message_Passing_Structure(Hierarchical_Message_Passing_Struct
 		phrase_sub = self.gate_sub2pred(feature_phrase, fea_sub2pred)
 		phrase_obj = self.gate_obj2pred(feature_phrase,  fea_obj2pred)
 		# pdb.set_trace()
-		phrase_region = self.prepare_message(feature_phrase, feature_region, mps_phrase[:, 2:], self.gate_reg2pred)
-		GRU_input_feature_phrase =  phrase_sub / 3. + phrase_obj / 3. + phrase_region / 3.
+		# if self.use_region:
+		# 	phrase_region = self.prepare_message(feature_phrase, feature_region, mps_phrase[:, 2:], self.gate_reg2pred)
+		# 	GRU_input_feature_phrase =  phrase_sub / 3. + phrase_obj / 3. + phrase_region / 3.
+		# else:
+		GRU_input_feature_phrase = phrase_sub / 2. + phrase_obj / 2.
 		if TIME_IT:
 			torch.cuda.synchronize()
 			print '\t\t[phrase pass]:\t%.3fs' % (t.toc(average=False))
@@ -53,8 +56,11 @@ class Hierarchical_Message_Passing_Structure(Hierarchical_Message_Passing_Struct
 
 		# region updating
 		t.tic()
-		GRU_input_feature_region = self.prepare_message(feature_region, feature_phrase, mps_region, self.gate_pred2reg)
-		out_feature_region = feature_region + self.GRU_region(GRU_input_feature_region, feature_region)
+		# if self.use_region:
+		# 	GRU_input_feature_region = self.prepare_message(feature_region, feature_phrase, mps_region, self.gate_pred2reg)
+		# 	out_feature_region = feature_region + self.GRU_region(GRU_input_feature_region, feature_region)
+		# else:
+		out_feature_region = feature_region
 		if TIME_IT:
 			torch.cuda.synchronize()
 			print '\t\t[region pass]:\t%.3fs' % (t.toc(average=False))

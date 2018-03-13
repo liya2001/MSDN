@@ -19,7 +19,7 @@ from faster_rcnn.utils.HDN_utils import get_model_name, group_features
 import pdb
 
 # To log the training process
-from tensorboard_logger import configure, log_value
+# from tensorboard_logger import configure, log_value
 
 TIME_IT = cfg.TIME_IT
 parser = argparse.ArgumentParser('Options for training Hierarchical Descriptive Model in pytorch')
@@ -50,7 +50,7 @@ parser.add_argument('--caption_use_bias', action='store_true', help='Use the fla
 parser.add_argument('--caption_use_dropout', action='store_const', const=0.5, default=0., help='Set to use dropout in caption model')
 parser.add_argument('--enable_bbox_reg', dest='region_bbox_reg', action='store_true')
 parser.add_argument('--disable_bbox_reg', dest='region_bbox_reg', action='store_false')
-parser.set_defaults(region_bbox_reg=True)
+parser.set_defaults(region_bbox_reg=False)
 parser.add_argument('--use_kernel_function', action='store_true')
 # Environment Settings
 parser.add_argument('--seed', type=int, default=1, help='set seed to some constant value to reproduce experiments')
@@ -130,7 +130,7 @@ def main():
     logger_path = "log/logger/{}".format(args.model_name)
     if os.path.exists(logger_path):
         shutil.rmtree(logger_path)
-    configure(logger_path, flush_secs=5) # setting up the logger
+    # configure(logger_path, flush_secs=5) # setting up the logger
 
 
     network.set_trainable(net, False)
@@ -273,7 +273,7 @@ def train(train_loader, target_net, optimizer, epoch):
         else:
             loss = target_net.loss
 
-        loss += target_net.objectiveness_loss
+        # loss += target_net.objectiveness_loss
 
         train_loss.update(target_net.loss.data.cpu().numpy()[0], im_data.size(0))
         train_obj_cls_loss.update(target_net.cross_entropy_object.data.cpu().numpy()[0], im_data.size(0))
@@ -332,9 +332,9 @@ def train(train_loader, target_net, optimizer, epoch):
                   (accuracy_reg.ture_pos*100., accuracy_reg.true_neg*100., accuracy_reg.foreground, accuracy_reg.background))
 
             # logging to tensor board
-            log_value('FRCNN loss', overall_train_loss.avg, overall_train_loss.count)
-            log_value('RPN_loss loss', overall_train_rpn_loss.avg, overall_train_rpn_loss.count)
-            log_value('caption loss', overall_train_region_caption_loss.avg, overall_train_region_caption_loss.count)
+            # log_value('FRCNN loss', overall_train_loss.avg, overall_train_loss.count)
+            # log_value('RPN_loss loss', overall_train_rpn_loss.avg, overall_train_rpn_loss.count)
+            # log_value('caption loss', overall_train_region_caption_loss.avg, overall_train_region_caption_loss.count)
 
 
     
